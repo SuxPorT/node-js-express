@@ -1,7 +1,7 @@
 const Atendimento = require("../models/atendimentos");
 
 module.exports = (app) => {
-  app.get("/atendimentos", (_, res) => {
+  app.get("/atendimentos", (_req, res) => {
     Atendimento.lista()
       .then((resultados) => res.status(200).json(resultados))
       .catch((erros) => res.status(400).json(erros));

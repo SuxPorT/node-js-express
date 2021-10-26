@@ -1,6 +1,5 @@
 const moment = require("moment");
 const axios = require("axios");
-const conexao = require("../infraestrutura/database/conexao");
 const repositorio = require("../repositorios/atendimento");
 
 class Atendimento {
@@ -46,7 +45,7 @@ class Atendimento {
     const existemErros = erros.length;
 
     if (existemErros) {
-      return new Promise((_, reject) => reject(erros));
+      return new Promise((_resolve, reject) => reject(erros));
     } else {
       const atendimentoDatado = { ...atendimento, dataCriacao, data };
 
