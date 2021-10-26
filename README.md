@@ -12,7 +12,7 @@ Repositório dedicado para alguns projetos em Node, utilizando-se dos cursos da 
 - [x] [NodeJS: Criando sua primeira biblioteca](https://cursos.alura.com.br/course/nodejs-criando-biblioteca)
 - [x] [Rest com NodeJS: API com Express e MySQL](https://cursos.alura.com.br/course/node-rest-api)
 - [x] [NodeJS: Streaming de dados e Repositório](https://cursos.alura.com.br/course/nodejs-streaming-dados)
-- [ ] [NodeJS: Crie uma API REST padronizada e escalável](https://cursos.alura.com.br/course/nodejs-api-rest-padronizada-escalavel)
+- [x] [NodeJS: Crie uma API REST padronizada e escalável](https://cursos.alura.com.br/course/nodejs-api-rest-padronizada-escalavel)
 - [ ] [NodeJS: Avançando em APIs REST com controle de versões](https://cursos.alura.com.br/course/nodejs-api-rest-controle-versao)
 - [ ] [ORM com NodeJS: API com Sequelize e MySQL](https://cursos.alura.com.br/course/orm-nodejs-api-sequelize-mysql)
 - [ ] [ORM com NodeJS: Avançando nas funcionalidades do Sequelize](https://cursos.alura.com.br/course/orm-nodejs-avancando-sequelize)
