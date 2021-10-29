@@ -21,6 +21,18 @@ class Fornecedor {
     this.versao = versao;
   }
 
+  validar() {
+    const campos = ["empresa", "email", "categoria"];
+
+    campos.forEach((campo) => {
+      const valor = this[campo];
+
+      if (typeof valor !== "string" || valor.length === 0) {
+        throw new CampoInvalido(campo);
+      }
+    });
+  }
+
   async criar() {
     this.validar();
 
@@ -70,18 +82,6 @@ class Fornecedor {
 
   remover() {
     return TabelaFornecedor.remover(this.id);
-  }
-
-  validar() {
-    const campos = ["empresa", "email", "categoria"];
-
-    campos.forEach((campo) => {
-      const valor = this[campo];
-
-      if (typeof valor !== "string" || valor.length === 0) {
-        throw new CampoInvalido(campo);
-      }
-    });
   }
 }
 

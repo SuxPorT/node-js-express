@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const config = require("config");
 const roteador = require("./rotas/fornecedores");
+const roteadorV2 = require("./rotas/fornecedores/rotas.v2");
 const NaoEncontrado = require("./erros/NaoEncontrado");
 const CampoInvalido = require("./erros/CampoInvalido");
 const DadosNaoFornecidos = require("./erros/DadosNaoFornecidos");
@@ -28,7 +29,15 @@ app.use((requisicao, resposta, proximo) => {
   proximo();
 });
 
+app.use((_requisicao, resposta, proximo) => {
+  resposta.set("Access-Control-Allow-Origin", "*");
+
+  proximo();
+});
+
 app.use("/api/fornecedores", roteador);
+
+app.use("/api/v2/fornecedores", roteadorV2);
 
 app.use((erro, _requisicao, resposta, _proximo) => {
   let status = 500;
@@ -36,10 +45,14 @@ app.use((erro, _requisicao, resposta, _proximo) => {
   switch (erro.constructor) {
     case NaoEncontrado:
       status = 404;
-    case CampoInvalido || DadosNaoFornecidos:
+      break;
+    case CampoInvalido:
+    case DadosNaoFornecidos:
       status = 400;
+      break;
     case ValorNaoSuportado:
       status = 406;
+      break;
   }
 
   const serializador = new SerializadorErro(resposta.getHeader("Content-Type"));
