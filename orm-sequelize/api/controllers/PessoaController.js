@@ -1,153 +1,113 @@
-const database = require("../models");
+const { PessoasServices } = require("../services");
+const pessoasServices = new PessoasServices();
 
 class PessoaController {
-  static async pegaTodasAsPessoas(_requisicao, resposta) {
+  static async pegaTodasAsPessoas(_req, res) {
     try {
-      const pessoas = await database.Pessoas.findAll();
+      const pessoas = await pessoasServices.pegaTodosOsRegistros();
 
-      return resposta.status(200).json(pessoas);
+      return res.status(200).json(pessoas);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async pegaUmaPessoa(requisicao, resposta) {
-    const { id } = requisicao.params;
-
+  static async pegaPessoasAtivas(_req, res) {
     try {
-      const pessoa = await database.Pessoas.findOne({
-        where: {
-          id: Number(id),
-        },
-      });
+      const pessoasAtivas = await pessoasServices.pegaRegistrosAtivos();
 
-      return resposta.status(200).json(pessoa);
+      return res.status(200).json(pessoasAtivas);
     } catch (error) {
-      return resposta.status(500).sjon(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async criaPessoa(requisicao, resposta) {
-    const pessoa = requisicao.body;
+  static async pegaPessoa(req, res) {
+    const { id } = req.params;
 
     try {
-      const pessoaCriada = await database.Pessoas.create(pessoa);
+      const pessoa = await pessoasServices.pegaUmRegistro({ id });
 
-      return resposta.status(201).json(pessoaCriada);
+      return res.status(200).json(pessoa);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).sjon(error.message);
     }
   }
 
-  static async atualizaPessoa(requisicao, resposta) {
-    const { id } = requisicao.params;
-    const informacoes = requisicao.body;
+  static async criaPessoa(req, res) {
+    const pessoa = req.body;
 
     try {
-      await database.Pessoas.update(informacoes, {
-        where: {
-          id: Number(id),
-        },
-      });
+      const pessoaCriada = await pessoasServices.criaRegistro(pessoa);
 
-      const pessoaAtualizada = await database.Pessoas.findOne({
-        where: {
-          id: Number(id),
-        },
-      });
-
-      return resposta.status(200).json(pessoaAtualizada);
+      return res.status(201).json(pessoaCriada);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async apagaPessoa(requisicao, resposta) {
-    const { id } = requisicao.params;
+  static async atualizaPessoa(req, res) {
+    const { id } = req.params;
+    const informacoes = req.body;
 
     try {
-      await database.Pessoas.destroy({
-        where: {
-          id: Number(id),
-        },
-      });
+      await pessoasServices.atualizaRegistro(informacoes, Number(id));
 
-      return resposta.status(200).json({ mensagem: `id ${id} deletado` });
+      return res.status(200).json(pessoaAtualizada);
     } catch (error) {
-      resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async pegaUmaMatricula(requisicao, resposta) {
-    const { estudanteId, matriculaId } = requisicao.params;
+  static async apagaPessoa(req, res) {
+    const { id } = req.params;
 
     try {
-      const matricula = await database.Matriculas.findOne({
-        where: {
-          id: Number(matriculaId),
-          estudante_id: Number(estudanteId),
-        },
-      });
+      await pessoasServices.apagaRegistro(Number(id));
 
-      return resposta.status(200).json(matricula);
+      return res.status(200).json({ mensagem: `id ${id} deletado` });
     } catch (error) {
-      return resposta.status(500).sjon(error.message);
+      res.status(500).json(error.message);
     }
   }
 
-  static async criaMatricula(requisicao, resposta) {
-    const { estudanteId } = requisicao.params;
-    const matricula = { ...requisicao.body, estudante_id: Number(estudanteId) };
+  static async restauraPessoa(req, res) {
+    const { id } = req.params;
 
     try {
-      const matriculaCriada = await database.Matriculas.create(matricula);
+      await pessoasServices.restauraRegistro(Number(id));
 
-      return resposta.status(201).json(matriculaCriada);
+      return res.status(200).json({ mensagem: `id ${id} restaurado` });
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async atualizaMatricula(requisicao, resposta) {
-    const { estudanteId, matriculaId } = requisicao.params;
-    const informacoes = requisicao.body;
+  static async pegaMatriculas(req, res) {
+    const { estudanteId } = req.params;
 
     try {
-      await database.Matriculas.update(informacoes, {
-        where: {
-          id: Number(matriculaId),
-          estudante_id: Number(estudanteId),
-        },
+      const matriculas = await pessoasServices.pegaMatriculasPorEstudante({
+        id: Number(estudanteId),
       });
 
-      const matriculaAtualizada = await database.Matriculas.findOne({
-        where: {
-          id: Number(matriculaId),
-        },
-      });
-
-      return resposta.status(200).json(matriculaAtualizada);
+      return res.status(200).json(matriculas);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).sjon(error.message);
     }
   }
 
-  static async apagaMatricula(requisicao, resposta) {
-    const { estudanteId, matriculaId } = requisicao.params;
+  static async cancelaPessoa(req, res) {
+    const { estudanteId } = req.params;
 
     try {
-      await database.Matriculas.destroy({
-        where: {
-          id: Number(matriculaId),
-          estudante_id: Number(estudanteId),
-        },
-      });
+      await pessoasServices.cancelaPessoaEMatriculas(Number(estudanteId));
 
-      return resposta
-        .status(200)
-        .json({ mensagem: `id ${matriculaId} deletado` });
+      return res.status(200).json({
+        message: `matriculas ref. estudante ${estudanteId} canceladas`,
+      });
     } catch (error) {
-      resposta.status(500).json(error.message);
+      res.status(500).json(error.message);
     }
   }
 }

@@ -5,101 +5,101 @@ const SerializadorFornecedor =
   require("../../Serializador").SerializadorFornecedor;
 const roteadorProdutos = require("./produtos");
 
-roteador.options("/", (_requisicao, resposta) => {
-  resposta.set("Access-Control-Allow-Methods", "GET, POST");
-  resposta.set("Access-Control-Allow-Headers", "Content-Type");
+roteador.options("/", (_req, res) => {
+  res.set("Access-Control-Allow-Methods", "GET, POST");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
-roteador.get("/", async (_requisicao, resposta) => {
+roteador.get("/", async (_req, res) => {
   const resultados = await TabelaFornecedor.listar();
   const serializador = new SerializadorFornecedor(
-    resposta.getHeader("Content-Type"),
+    res.getHeader("Content-Type"),
     ["empresa"]
   );
 
-  resposta.status(200).send(serializador.serializar(resultados));
+  res.status(200).send(serializador.serializar(resultados));
 });
 
-roteador.post("/", async (requisicao, resposta, proximo) => {
+roteador.post("/", async (req, res, proximo) => {
   try {
-    const dadosRecebidos = requisicao.body;
+    const dadosRecebidos = req.body;
     const fornecedor = new Fornecedor(dadosRecebidos);
     const serializador = new SerializadorFornecedor(
-      resposta.getHeader("Content-Type"),
+      res.getHeader("Content-Type"),
       ["empresa"]
     );
 
     await fornecedor.criar();
 
-    resposta.status(201).send(serializador.serializar(fornecedor));
+    res.status(201).send(serializador.serializar(fornecedor));
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.options("/:idFornecedor", (_requisicao, resposta) => {
-  resposta.set("Access-Control-Allow-Methods", "GET, PUT, DELETE");
-  resposta.set("Access-Control-Allow-Headers", "Content-Type");
+roteador.options("/:idFornecedor", (_req, res) => {
+  res.set("Access-Control-Allow-Methods", "GET, PUT, DELETE");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
-roteador.get("/:idFornecedor", async (requisicao, resposta, proximo) => {
+roteador.get("/:idFornecedor", async (req, res, proximo) => {
   try {
-    const id = requisicao.params.idFornecedor;
+    const id = req.params.idFornecedor;
     const fornecedor = new Fornecedor({ id: id });
     const serializador = new SerializadorFornecedor(
-      resposta.getHeader("Content-Type"),
+      res.getHeader("Content-Type"),
       ["email", "empresa", "dataCriacao", "dataAtualizacao", "versao"]
     );
 
     await fornecedor.carregar();
 
-    resposta.status(200).send(serializador.serializar(fornecedor));
+    res.status(200).send(serializador.serializar(fornecedor));
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.put("/:idFornecedor", async (requisicao, resposta, proximo) => {
+roteador.put("/:idFornecedor", async (req, res, proximo) => {
   try {
-    const id = requisicao.params.idFornecedor;
-    const dadosRecebidos = requisicao.body;
+    const id = req.params.idFornecedor;
+    const dadosRecebidos = req.body;
     const dados = Object.assign({}, dadosRecebidos, { id: id });
     const fornecedor = new Fornecedor(dados);
 
     await fornecedor.atualizar();
 
-    resposta.status(204).end();
+    res.status(204).end();
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.delete("/:idFornecedor", async (requisicao, resposta, proximo) => {
+roteador.delete("/:idFornecedor", async (req, res, proximo) => {
   try {
-    const id = requisicao.params.idFornecedor;
+    const id = req.params.idFornecedor;
     const fornecedor = new Fornecedor({ id: id });
 
     await fornecedor.carregar();
     await fornecedor.remover();
 
-    resposta.status(204).end();
+    res.status(204).end();
   } catch (erro) {
     proximo(erro);
   }
 });
 
-const verificarFornecedor = async (requisicao, _resposta, proximo) => {
+const verificarFornecedor = async (req, _res, proximo) => {
   try {
-    const id = requisicao.params.idFornecedor;
+    const id = req.params.idFornecedor;
     const fornecedor = new Fornecedor({ id: id });
 
     await fornecedor.carregar();
 
-    requisicao.fornecedor = fornecedor;
+    req.fornecedor = fornecedor;
 
     proximo();
   } catch (erro) {

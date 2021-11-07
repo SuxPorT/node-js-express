@@ -12,25 +12,25 @@ const SerializadorErro = require("./Serializador").SerializadorErro;
 
 app.use(express.json());
 
-app.use((requisicao, resposta, proximo) => {
-  let formatoRequisitado = requisicao.header("Accept");
+app.use((req, res, proximo) => {
+  let formatoRequisitado = req.header("Accept");
 
   if (formatoRequisitado === "*/*") {
     formatoRequisitado = "application/json";
   }
 
   if (formatosAceitos.indexOf(formatoRequisitado) === -1) {
-    resposta.status(406).end();
+    res.status(406).end();
 
     return;
   }
 
-  resposta.setHeader("Content-Type", formatoRequisitado);
+  res.setHeader("Content-Type", formatoRequisitado);
   proximo();
 });
 
-app.use((_requisicao, resposta, proximo) => {
-  resposta.set("Access-Control-Allow-Origin", "*");
+app.use((_req, res, proximo) => {
+  res.set("Access-Control-Allow-Origin", "*");
 
   proximo();
 });
@@ -39,7 +39,7 @@ app.use("/api/fornecedores", roteador);
 
 app.use("/api/v2/fornecedores", roteadorV2);
 
-app.use((erro, _requisicao, resposta, _proximo) => {
+app.use((erro, _req, res, _proximo) => {
   let status = 500;
 
   switch (erro.constructor) {
@@ -55,9 +55,9 @@ app.use((erro, _requisicao, resposta, _proximo) => {
       break;
   }
 
-  const serializador = new SerializadorErro(resposta.getHeader("Content-Type"));
+  const serializador = new SerializadorErro(res.getHeader("Content-Type"));
 
-  resposta
+  res
     .status(status)
     .send(serializador.serializar({ id: erro.idErro, mensagem: erro.message }));
 });

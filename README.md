@@ -15,7 +15,7 @@ Repositório dedicado para alguns projetos em Node, utilizando-se dos cursos da 
 - [x] [NodeJS: Crie uma API REST padronizada e escalável](https://cursos.alura.com.br/course/nodejs-api-rest-padronizada-escalavel)
 - [x] [NodeJS: Avançando em APIs REST com controle de versões](https://cursos.alura.com.br/course/nodejs-api-rest-controle-versao)
 - [x] [ORM com NodeJS: API com Sequelize e MySQL](https://cursos.alura.com.br/course/orm-nodejs-api-sequelize-mysql)
-- [ ] [ORM com NodeJS: Avançando nas funcionalidades do Sequelize](https://cursos.alura.com.br/course/orm-nodejs-avancando-sequelize)
+- [x] [ORM com NodeJS: Avançando nas funcionalidades do Sequelize](https://cursos.alura.com.br/course/orm-nodejs-avancando-sequelize)
 - [ ] [Node.js e JWT: autenticação com tokens](https://cursos.alura.com.br/course/node-jwt-autenticacao-tokens)
 - [ ] [Node.js: Refresh Tokens e confirmação de cadastro](https://cursos.alura.com.br/course/nodejs-refresh-tokens-confirmacao-cadastro)
 - [ ] [NodeJS: Controle de acesso e autorização com RBAC](https://cursos.alura.com.br/course/nodejs-controle-acesso-autorizacao-rbac)

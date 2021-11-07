@@ -1,80 +1,84 @@
-const database = require("../models");
+const { TurmasServices } = require("../services");
+const Sequelize = require("sequelize");
+const Op = Sequelize.Op;
+const turmasServices = new TurmasServices();
 
 class TurmaController {
-  static async pegaTodasAsTurmas(requisicao, resposta) {
-    try {
-      const todasAsTurmas = await database.Turmas.findAll();
+  static async pegaTodasAsTurmas(req, res) {
+    const { data_inicial, data_final } = req.query;
+    const where = {};
 
-      return resposta.status(200).json(todasAsTurmas);
+    data_inicial || data_final ? (where.data_inicio = {}) : null;
+    data_inicial ? (where.data_inicio[Op.gte] = data_inicial) : null;
+    data_final ? (where.data_inicio[Op.lte] = data_final) : null;
+
+    try {
+      const turmas = await turmasServices.pegaTodosOsRegistros(where);
+
+      return res.status(200).json(turmas);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async pegaUmaTurma(requisicao, resposta) {
-    const { id } = requisicao.params;
+  static async pegaTurma(req, res) {
+    const { id } = req.params;
 
     try {
-      const turma = await database.Turmas.findOne({
-        where: {
-          id: Number(id),
-        },
-      });
+      const turma = await turmasServices.pegaUmRegistro({ id });
 
-      return resposta.status(200).json(turma);
+      return res.status(200).json(turma);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async criaTurma(requisicao, resposta) {
-    const novaTurma = requisicao.body;
+  static async criaTurma(req, res) {
+    const turma = req.body;
 
     try {
-      const turmaCriada = await database.Turmas.create(novaTurma);
+      const turmaCriada = await turmasServices.criaRegistro(turma);
 
-      return resposta.status(200).json(turmaCriada);
+      return res.status(200).json(turmaCriada);
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async atualizaTurma(requisicao, resposta) {
-    const { id } = requisicao.params;
-    const novasInfos = requisicao.body;
+  static async atualizaTurma(req, res) {
+    const { id } = req.params;
+    const informacoes = req.body;
 
     try {
-      await database.Turmas.update(novasInfos, {
-        where: {
-          id: Number(id),
-        },
-      });
+      await turmasServices.atualizaRegistro(informacoes, Number(id));
 
-      const turmaAtualizada = await database.Turmas.findOne({
-        where: {
-          id: Number(id),
-        },
-      });
-
-      return resposta.status(200).json(turmaAtualizada);
+      return res.status(200).json({ mensagem: `id ${id} atualizado` });
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
     }
   }
 
-  static async apagaTurma(requisicao, resposta) {
-    const { id } = requisicao.params;
+  static async apagaTurma(req, res) {
+    const { id } = req.params;
 
     try {
-      await database.Turmas.destroy({
-        where: {
-          id: Number(id),
-        },
-      });
+      await turmasServices.apagaRegistro(Number(id));
 
-      return resposta.status(200).json({ mensagem: `id ${id} deletado` });
+      return res.status(200).json({ mensagem: `id ${id} deletado` });
     } catch (error) {
-      return resposta.status(500).json(error.message);
+      return res.status(500).json(error.message);
+    }
+  }
+
+  static async restauraTurma(req, res) {
+    const { id } = req.params;
+
+    try {
+      await turmasServices.restauraRegistro(Number(id));
+
+      return res.status(200).json({ mensagem: `id ${id} restaurado` });
+    } catch (error) {
+      return res.status(500).json(error.message);
     }
   }
 }

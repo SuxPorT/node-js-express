@@ -3,57 +3,57 @@ const Tabela = require("./TabelaProduto");
 const Produto = require("./Produto");
 const Serializador = require("../../../Serializador").SerializadorProduto;
 
-roteador.options("/", (_requisicao, resposta) => {
-  resposta.set("Access-Control-Allow-Methods", "GET, POST");
-  resposta.set("Access-Control-Allow-Headers", "Content-Type");
+roteador.options("/", (_req, res) => {
+  res.set("Access-Control-Allow-Methods", "GET, POST");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
-roteador.get("/", async (requisicao, resposta) => {
-  const produtos = await Tabela.listar(requisicao.fornecedor.id);
-  const serializador = new Serializador(resposta.getHeader("Content-Type"));
+roteador.get("/", async (req, res) => {
+  const produtos = await Tabela.listar(req.fornecedor.id);
+  const serializador = new Serializador(res.getHeader("Content-Type"));
 
-  resposta.send(serializador.serializar(produtos));
+  res.send(serializador.serializar(produtos));
 });
 
-roteador.post("/", async (requisicao, resposta, proximo) => {
+roteador.post("/", async (req, res, proximo) => {
   try {
-    const idFornecedor = requisicao.fornecedor.id;
-    const corpo = requisicao.body;
+    const idFornecedor = req.fornecedor.id;
+    const corpo = req.body;
     const dados = Object.assign({}, corpo, { fornecedor: idFornecedor });
     const produto = new Produto(dados);
-    const serializador = new Serializador(resposta.getHeader("Content-Type"));
+    const serializador = new Serializador(res.getHeader("Content-Type"));
 
     await produto.criar(dados);
 
     const timestamp = new Date(produto.dataAtualizacao).getTime();
 
-    resposta.set("ETag", produto.versao);
-    resposta.set("Last-Modified", timestamp);
-    resposta.set(
+    res.set("ETag", produto.versao);
+    res.set("Last-Modified", timestamp);
+    res.set(
       "Location",
       `/api/fornecedores/${produto.fornecedor}/produtos/${produto.id}`
     );
 
-    resposta.status(201).send(serializador.serializar(produto));
+    res.status(201).send(serializador.serializar(produto));
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.options("/:id", (_requisicao, resposta) => {
-  resposta.set("Access-Control-Allow-Methods", "HEAD, GET, PUT, DELETE");
-  resposta.set("Access-Control-Allow-Headers", "Content-Type");
+roteador.options("/:id", (_req, res) => {
+  res.set("Access-Control-Allow-Methods", "HEAD, GET, PUT, DELETE");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
-roteador.head("/:id", async (requisicao, resposta, proximo) => {
+roteador.head("/:id", async (req, res, proximo) => {
   try {
     const dados = {
-      id: requisicao.params.id,
-      fornecedor: requisicao.fornecedor.id,
+      id: req.params.id,
+      fornecedor: req.fornecedor.id,
     };
 
     const produto = new Produto(dados);
@@ -62,24 +62,24 @@ roteador.head("/:id", async (requisicao, resposta, proximo) => {
 
     const timestamp = new Date(produto.dataAtualizacao).getTime();
 
-    resposta.set("ETag", produto.versao);
-    resposta.set("Last-Modified", timestamp);
+    res.set("ETag", produto.versao);
+    res.set("Last-Modified", timestamp);
 
-    resposta.status(200).end();
+    res.status(200).end();
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.get("/:id", async (requisicao, resposta, proximo) => {
+roteador.get("/:id", async (req, res, proximo) => {
   try {
     const dados = {
-      id: requisicao.params.id,
-      fornecedor: requisicao.fornecedor.id,
+      id: req.params.id,
+      fornecedor: req.fornecedor.id,
     };
 
     const produto = new Produto(dados);
-    const serializador = new Serializador(resposta.getHeader("Content-Type"), [
+    const serializador = new Serializador(res.getHeader("Content-Type"), [
       "fornecedor",
       "preco",
       "estoque",
@@ -92,20 +92,20 @@ roteador.get("/:id", async (requisicao, resposta, proximo) => {
 
     const timestamp = new Date(produto.dataAtualizacao).getTime();
 
-    resposta.set("ETag", produto.versao);
-    resposta.set("Last-Modified", timestamp);
+    res.set("ETag", produto.versao);
+    res.set("Last-Modified", timestamp);
 
-    resposta.status(200).send(serializador.serializar(produto));
+    res.status(200).send(serializador.serializar(produto));
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.put("/:id", async (requisicao, resposta, proximo) => {
+roteador.put("/:id", async (req, res, proximo) => {
   try {
-    const dados = Object.assign({}, requisicao.body, {
-      id: requisicao.params.id,
-      fornecedor: requisicao.fornecedor.id,
+    const dados = Object.assign({}, req.body, {
+      id: req.params.id,
+      fornecedor: req.fornecedor.id,
     });
 
     const produto = new Produto(dados);
@@ -115,57 +115,57 @@ roteador.put("/:id", async (requisicao, resposta, proximo) => {
 
     const timestamp = new Date(produto.dataAtualizacao).getTime();
 
-    resposta.set("ETag", produto.versao);
-    resposta.set("Last-Modified", timestamp);
+    res.set("ETag", produto.versao);
+    res.set("Last-Modified", timestamp);
 
-    resposta.status(204).end();
+    res.status(204).end();
   } catch (erro) {
     proximo(erro);
   }
 });
 
-roteador.delete("/:idProduto", async (requisicao, resposta) => {
+roteador.delete("/:idProduto", async (req, res) => {
   const dados = {
-    id: requisicao.params.idProduto,
-    fornecedor: requisicao.fornecedor.id,
+    id: req.params.idProduto,
+    fornecedor: req.fornecedor.id,
   };
 
   const produto = new Produto(dados);
 
   await produto.remover();
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
-roteador.options("/:id/diminuir-estoque", (_requisicao, resposta) => {
-  resposta.set("Access-Control-Allow-Methods", "POST");
-  resposta.set("Access-Control-Allow-Headers", "Content-Type");
+roteador.options("/:id/diminuir-estoque", (_req, res) => {
+  res.set("Access-Control-Allow-Methods", "POST");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-  resposta.status(204).end();
+  res.status(204).end();
 });
 
 roteador.post(
   "/:id/diminuir-estoque",
-  async (requisicao, resposta, proximo) => {
+  async (req, res, proximo) => {
     try {
       const produto = new Produto({
-        id: requisicao.params.id,
-        fornecedor: requisicao.fornecedor.id,
+        id: req.params.id,
+        fornecedor: req.fornecedor.id,
       });
 
       await produto.carregar();
 
-      produto.estoque = produto.estoque - requisicao.body.quantidade;
+      produto.estoque = produto.estoque - req.body.quantidade;
 
       await produto.diminuirEstoque();
       await produto.carregar();
 
       const timestamp = new Date(produto.dataAtualizacao).getTime();
 
-      resposta.set("ETag", produto.versao);
-      resposta.set("Last-Modified", timestamp);
+      res.set("ETag", produto.versao);
+      res.set("Last-Modified", timestamp);
 
-      resposta.status(204).end();
+      res.status(204).end();
     } catch (erro) {
       proximo(erro);
     }
