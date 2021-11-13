@@ -1,8 +1,8 @@
 require("dotenv").config();
-require("./redis/blacklist");
+require("./redis/blocklist-access-token");
+require("./redis/allowlist-refresh-token");
 
 const app = require("./app");
-const db = require("./database");
 const routes = require("./rotas");
 const port = 3000;
 

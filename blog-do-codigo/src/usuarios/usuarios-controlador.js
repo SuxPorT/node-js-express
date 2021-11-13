@@ -1,30 +1,46 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const moment = require("moment");
 const Usuario = require("./usuarios-modelo");
-const blacklist = require("../../redis/manipula-blacklist");
+const allowlistRefreshToken = require("../../redis/allowlist-refresh-token");
+const tokens = require("./tokens");
+const { EmailVerificacao } = require("./emails");
 const { InvalidArgumentError, InternalServerError } = require("../erros");
 
-function criaTokenJWT(usuario) {
-  const payload = {
-    id: usuario.id,
-  };
+async function criaTokenOpaco(usuario) {
+  const tokenOpaco = crypto.randomBytes(24).toString("hex");
+  const dataExpiracao = moment().add(5, "d").unix();
 
-  const token = jwt.sign(payload, process.env.CHAVE_JWT, { expiresIn: "15m" });
+  await allowlistRefreshToken.adiciona(tokenOpaco, usuario.id, dataExpiracao);
 
-  return token;
+  return tokenOpaco;
+}
+
+function geraEndereco(rota, token) {
+  const baseURL = process.env.BASE_URL;
+
+  return `${baseURL}${rota}${token}`;
 }
 
 module.exports = {
-  adiciona: async (req, res) => {
+  async adiciona(req, res) {
     const { nome, email, senha } = req.body;
 
     try {
       const usuario = new Usuario({
         nome,
         email,
+        emailVerificado: false,
       });
 
       await usuario.adicionaSenha(senha);
       await usuario.adiciona();
+
+      const token = tokens.verificacaoEmail.cria(usuario.id);
+      const endereco = geraEndereco("/usuario/verifica_email", token);
+      const emailVerificacao = new EmailVerificacao(usuario, endereco);
+
+      emailVerificacao.enviaEmail().catch(console.log);
 
       res.status(201).json();
     } catch (erro) {
@@ -38,38 +54,51 @@ module.exports = {
     }
   },
 
-  login: (req, res) => {
-    const token = criaTokenJWT(req.user);
+  async login(req, res) {
+    const acessToken = tokens.access.cria(req.user.id);
+    const refreshToken = await tokens.refresh.cria(req.user.id);
 
-    res.set("Authorization", token);
+    res.set("Authorization", acessToken);
 
-    res.status(204).send();
+    res.status(200).json({ refreshToken });
   },
 
-  logout: async (req, res) => {
+  async logout(req, res) {
     try {
       const token = req.token;
 
-      await blacklist.adiciona(token);
+      await tokens.access.invalida(token);
 
-      res.status(204).send();
+      res.status(204).json();
     } catch (erro) {
-      res.status(500).send({ erro: erro.message });
+      res.status(500).json({ erro: erro.message });
     }
   },
 
-  lista: async (_req, res) => {
+  async lista(_req, res) {
     const usuarios = await Usuario.lista();
 
     res.json(usuarios);
   },
 
-  deleta: async (req, res) => {
+  async verificaEmail(req, res) {
+    try {
+      const usuario = await Usuario.buscaPorId(req.params.id);
+
+      await usuario.verificaEmail();
+
+      res.status(200).json();
+    } catch (erro) {
+      res.status(500).json({ erro: erro.message });
+    }
+  },
+
+  async deleta(req, res) {
     const usuario = await Usuario.buscaPorId(req.params.id);
     try {
       await usuario.deleta();
 
-      res.status(200).send();
+      res.status(200).json();
     } catch (erro) {
       res.status(500).json({ erro: erro });
     }
