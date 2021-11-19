@@ -1,5 +1,5 @@
 const redis = require("redis");
 const manipulaLista = require("./manipula-lista");
-const allowList = redis.createClient({ prefix: "allowlist-refresh-token:" });
+const allowlist = redis.createClient({ prefix: "allowlist-refresh-token:" });
 
-module.exports = manipulaLista(allowList);
+module.exports = manipulaLista(allowlist);

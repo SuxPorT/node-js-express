@@ -8,19 +8,12 @@ module.exports = {
       "local",
       { session: false },
       (erro, usuario, _info) => {
-        if (erro && erro.name === "InvalidArgumentError") {
-          return res.status(401).json({ erro: erro.message });
-        }
-
         if (erro) {
-          return res.status(500).json({ erro: erro.message });
-        }
-
-        if (!usuario) {
-          return res.status(401).json();
+          return next(erro);
         }
 
         req.user = usuario;
+        req.estaAutenticado = true;
 
         return next();
       }
@@ -32,39 +25,25 @@ module.exports = {
       "bearer",
       { session: false },
       (erro, usuario, info) => {
-        if (erro && erro.name == "JsonWebTokenError") {
-          return res.status(401).json({ erro: erro.message });
-        }
-
-        if (erro && erro.name == "TokenExpiredError") {
-          return res
-            .status(401)
-            .json({ erro: erro.message, expiradoEm: erro.expiredAt });
-        }
-
         if (erro) {
-          return res.status(500).json({ erro: erro.message });
-        }
-
-        if (!usuario) {
-          return res.status(401).json();
+          return next(erro);
         }
 
         req.token = info.token;
         req.user = usuario;
+        req.estaAutenticado = true;
 
         return next();
       }
     )(req, res, next);
   },
 
-  async refresh(req, _res, next) {
+  async refresh(req, res, next) {
     try {
       const { refreshToken } = req.body;
       const id = await tokens.refresh.verifica(refreshToken);
 
       await tokens.refresh.invalida(refreshToken);
-
       req.user = await Usuario.buscaPorId(id);
 
       return next();
@@ -77,7 +56,7 @@ module.exports = {
     }
   },
 
-  async verificacaoEmail(req, res, next) {
+  async verificacaoEmail(req, _res, next) {
     try {
       const { token } = req.params;
       const id = await tokens.verificacaoEmail.verifica(token);
@@ -87,17 +66,7 @@ module.exports = {
 
       next();
     } catch (erro) {
-      if (erro.name === "JsonWebTokenError") {
-        return res.status(401).json({ erro: erro.message });
-      }
-
-      if (erro.name === "TokenExpiredError") {
-        return res
-          .status(401)
-          .json({ erro: erro.message, expiradoEm: erro.expiredAt });
-      }
-
-      return res.status(500).json({ erro: erro.message });
+      next(erro);
     }
   },
 };

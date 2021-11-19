@@ -10,7 +10,7 @@ const configuracaoEmailProducao = {
 };
 
 const configuracaoEmailTeste = (contaTeste) => ({
-  host: "smpt.ethereal.email",
+  host: "smtp.ethereal.email",
   auth: contaTeste,
 });
 
@@ -18,7 +18,7 @@ async function criaConfiguracaoEmail() {
   if (process.env.NODE_ENV === "production") {
     return configuracaoEmailProducao;
   } else {
-    const contaTeste = nodemailer.createTestAccount();
+    const contaTeste = await nodemailer.createTestAccount();
 
     return configuracaoEmailTeste(contaTeste);
   }
@@ -27,9 +27,8 @@ async function criaConfiguracaoEmail() {
 class Email {
   async enviaEmail() {
     const configuracaoEmail = await criaConfiguracaoEmail();
-    const tranportador = nodemailer.createTransport(configuracaoEmail);
-
-    const info = await tranportador.sendMail(this);
+    const transportador = nodemailer.createTransport(configuracaoEmail);
+    const info = await transportador.sendMail(this);
 
     if (process.env.NODE_ENV !== "production") {
       console.log("URL: " + nodemailer.getTestMessageUrl(info));
@@ -45,8 +44,20 @@ class EmailVerificacao extends Email {
     this.to = usuario.email;
     this.subject = "Verificação de e-mail";
     this.text = `Olá! Verifique seu e-mail aqui: ${endereco}`;
-    this.html = `Olá! Verifique seu e-mail aqui: <a href="${endereco}">${endereco}</a>`;
+    this.html = `<h1>Olá!</h1> Verifique seu e-mail aqui: <a href="${endereco}">${endereco}</a>`;
   }
 }
 
-module.exports = { EmailVerificacao };
+class EmailRedefinicaoSenha extends Email {
+  constructor(usuario, token) {
+    super();
+
+    this.from = '"Blog do Código" <noreply@blogdocodigo.com.br>';
+    this.to = usuario.email;
+    this.subject = "Verificação de e-mail";
+    this.text = `Olá! Você pediu para redefinir sua senha. Use o token a seguir para trocar a sua senha: ${token}`;
+    this.html = `<h1>Olá!</h1> Você pediu para redefinir sua senha. Use o token a seguir para trocar a sua senha: ${token}`;
+  }
+}
+
+module.exports = { EmailVerificacao, EmailRedefinicaoSenha };

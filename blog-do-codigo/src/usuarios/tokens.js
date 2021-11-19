@@ -3,6 +3,8 @@ const crypto = require("crypto");
 const moment = require("moment");
 const allowlistRefreshToken = require("../../redis/allowlist-refresh-token");
 const blocklistAccessToken = require("../../redis/blocklist-access-token");
+const listaRedefinicao = require("../../redis/listaRedefinicaoDeSenha");
+const { InvalidArgumentError } = require("../erros");
 
 function criaTokenJWT(id, [tempoQuantidade, tempoUnidade]) {
   const payload = { id };
@@ -13,37 +15,37 @@ function criaTokenJWT(id, [tempoQuantidade, tempoUnidade]) {
   return token;
 }
 
-async function criaTokenOpaco(id, [tempoQuantidade, tempoUnidade], allowlist) {
-  const tokenOpaco = crypto.randomBytes(24).toString("hex");
-  const dataExpiracao = moment().add(tempoQuantidade, tempoUnidade).unix();
-
-  await allowlistRefreshToken.adiciona(tokenOpaco, id, dataExpiracao);
-
-  return tokenOpaco;
-}
-
 async function verificaTokenJWT(token, nome, blocklist) {
-  await verificaTokenNaBlacklist(token, nome, blocklist);
+  await verificaTokenNaBlocklist(token, nome, blocklist);
 
   const { id } = jwt.verify(token, process.env.CHAVE_JWT);
 
   return id;
 }
 
-async function verificaTokenNaBlacklist(token, nome, blocklist) {
+async function verificaTokenNaBlocklist(token, nome, blocklist) {
   if (!blocklist) {
     return;
   }
 
-  const tokenNaBloclist = await blocklist.contemToken(token);
+  const tokenNaBlocklist = await blocklist.contemToken(token);
 
-  if (!tokenNaBloclist) {
+  if (tokenNaBlocklist) {
     throw new jwt.JsonWebTokenError(`${nome} inválido por logout!`);
   }
 }
 
 function invalidaTokenJWT(token, blocklist) {
   return blocklist.adiciona(token);
+}
+
+async function criaTokenOpaco(id, [tempoQuantidade, tempoUnidade], allowlist) {
+  const tokenOpaco = crypto.randomBytes(24).toString("hex");
+  const dataExpiracao = moment().add(tempoQuantidade, tempoUnidade).unix();
+
+  await allowlist.adiciona(tokenOpaco, id, dataExpiracao);
+
+  return tokenOpaco;
 }
 
 async function verificaTokenOpaco(token, nome, allowlist) {
@@ -74,10 +76,9 @@ function verificaTokenEnviado(token, nome) {
 
 module.exports = {
   access: {
-    nome: "acces token",
+    nome: "access token",
     lista: blocklistAccessToken,
     expiracao: [15, "m"],
-
     cria(id) {
       return criaTokenJWT(id, this.expiracao);
     },
@@ -95,9 +96,8 @@ module.exports = {
     nome: "refresh token",
     lista: allowlistRefreshToken,
     expiracao: [5, "d"],
-
     cria(id) {
-      return criaTokenOpaco(id, this.expiracao, this.list);
+      return criaTokenOpaco(id, this.expiracao, this.lista);
     },
 
     verifica(token) {
@@ -112,13 +112,25 @@ module.exports = {
   verificacaoEmail: {
     nome: "token de verificação de e-mail",
     expiracao: [1, "h"],
-
     cria(id) {
       return criaTokenJWT(id, this.expiracao);
     },
 
     verifica(token) {
       return verificaTokenJWT(token, this.nome);
+    },
+  },
+
+  redefinicaoDeSenha: {
+    nome: "redefinição de senha",
+    lista: listaRedefinicao,
+    expiracao: [1, "h"],
+    criaToken(id) {
+      return criaTokenOpaco(id, this.expiracao, this.lista);
+    },
+
+    verifica(token) {
+      return verificaTokenOpaco(token, this.nome, this.lista);
     },
   },
 };

@@ -1,20 +1,8 @@
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const moment = require("moment");
 const Usuario = require("./usuarios-modelo");
-const allowlistRefreshToken = require("../../redis/allowlist-refresh-token");
 const tokens = require("./tokens");
-const { EmailVerificacao } = require("./emails");
-const { InvalidArgumentError, InternalServerError } = require("../erros");
-
-async function criaTokenOpaco(usuario) {
-  const tokenOpaco = crypto.randomBytes(24).toString("hex");
-  const dataExpiracao = moment().add(5, "d").unix();
-
-  await allowlistRefreshToken.adiciona(tokenOpaco, usuario.id, dataExpiracao);
-
-  return tokenOpaco;
-}
+const { ConversorUsuario } = require("../conversores");
+const { EmailVerificacao, EmailRedefinicaoSenha } = require("./emails");
+const { InvalidArgumentError, NotFoundError } = require("../erros");
 
 function geraEndereco(rota, token) {
   const baseURL = process.env.BASE_URL;
@@ -23,47 +11,46 @@ function geraEndereco(rota, token) {
 }
 
 module.exports = {
-  async adiciona(req, res) {
-    const { nome, email, senha } = req.body;
+  async adiciona(req, res, next) {
+    const { nome, email, senha, cargo } = req.body;
 
     try {
       const usuario = new Usuario({
         nome,
         email,
         emailVerificado: false,
+        cargo,
       });
 
       await usuario.adicionaSenha(senha);
       await usuario.adiciona();
 
       const token = tokens.verificacaoEmail.cria(usuario.id);
-      const endereco = geraEndereco("/usuario/verifica_email", token);
+      const endereco = geraEndereco("/usuario/verifica_email/", token);
       const emailVerificacao = new EmailVerificacao(usuario, endereco);
 
       emailVerificacao.enviaEmail().catch(console.log);
 
       res.status(201).json();
     } catch (erro) {
-      if (erro instanceof InvalidArgumentError) {
-        res.status(422).json({ erro: erro.message });
-      } else if (erro instanceof InternalServerError) {
-        res.status(500).json({ erro: erro.message });
-      } else {
-        res.status(500).json({ erro: erro.message });
-      }
+      next(erro);
     }
   },
 
-  async login(req, res) {
-    const acessToken = tokens.access.cria(req.user.id);
-    const refreshToken = await tokens.refresh.cria(req.user.id);
+  async login(req, res, next) {
+    try {
+      const accessToken = tokens.access.cria(req.user.id);
+      const refreshToken = await tokens.refresh.cria(req.user.id);
 
-    res.set("Authorization", acessToken);
+      res.set("Authorization", accessToken);
 
-    res.status(200).json({ refreshToken });
+      res.status(200).json({ refreshToken });
+    } catch (erro) {
+      next(erro);
+    }
   },
 
-  async logout(req, res) {
+  async logout(req, res, next) {
     try {
       const token = req.token;
 
@@ -71,36 +58,92 @@ module.exports = {
 
       res.status(204).json();
     } catch (erro) {
-      res.status(500).json({ erro: erro.message });
+      next(erro);
     }
   },
 
-  async lista(_req, res) {
-    const usuarios = await Usuario.lista();
+  async lista(req, res, next) {
+    try {
+      const usuarios = await Usuario.lista();
+      const conversor = new ConversorUsuario(
+        "json",
+        req.acesso.todos.permitido
+          ? req.acesso.todos.atributos
+          : req.acesso.apenasSeu.atributos
+      );
 
-    res.json(usuarios);
+      res.json(conversor.converter(usuarios));
+    } catch (erro) {
+      next(erro);
+    }
   },
 
-  async verificaEmail(req, res) {
+  async verificaEmail(req, res, next) {
     try {
-      const usuario = await Usuario.buscaPorId(req.params.id);
+      const usuario = req.user;
 
       await usuario.verificaEmail();
 
       res.status(200).json();
     } catch (erro) {
-      res.status(500).json({ erro: erro.message });
+      next(erro);
     }
   },
 
-  async deleta(req, res) {
-    const usuario = await Usuario.buscaPorId(req.params.id);
+  async deleta(req, res, next) {
     try {
+      const usuario = await Usuario.buscaPorId(req.params.id);
+
       await usuario.deleta();
 
       res.status(200).json();
     } catch (erro) {
-      res.status(500).json({ erro: erro });
+      next(erro);
+    }
+  },
+
+  async esqueciMinhaSenha(req, res, next) {
+    const respostaPadrao = {
+      mensagem:
+        "Se encontrarmor um usuário com este email, vamos enviar uma mensagem com as intruçõe spara redefinir a senha",
+    };
+
+    try {
+      const usuario = await Usuario.buscaPorEmail(req.body.email);
+      const token = await tokens.redefinicaoDeSenha.criaToken(usuario.id);
+      const email = new EmailRedefinicaoSenha(usuario, token);
+
+      await email.enviaEmail();
+
+      res.send(respostaPadrao);
+    } catch (erro) {
+      if (erro instanceof NotFoundError) {
+        res.send(respostaPadrao);
+
+        return;
+      }
+
+      next(erro);
+    }
+  },
+
+  async trocarSenha(req, res, next) {
+    try {
+      const token = req.body.token;
+
+      if (typeof token !== "string" || token.length === 0) {
+        throw new InvalidArgumentError("O token está inválido");
+      }
+
+      const id = await tokens.redefinicaoDeSenha.verifica(token);
+      const usuario = await Usuario.buscaPorId(id);
+
+      await usuario.adicionaSenha(req.body.senha);
+      await usuario.atualizarSenha();
+
+      res.send({ mensagem: "Sua senha foi atualizada com sucesso" });
+    } catch (erro) {
+      next(erro);
     }
   },
 };

@@ -10,13 +10,14 @@ module.exports = {
   async adiciona(usuario) {
     try {
       await dbRun(
-        `INSERT INTO usuarios (nome, email, senhaHash, emailVertificado) 
-        VALUES (?, ?, ?, ?)`,
+        `INSERT INTO usuarios (nome, email, senhaHash, emailVerificado, cargo) 
+        VALUES (?, ?, ?, ?, ?)`,
         [
           usuario.nome,
           usuario.email,
           usuario.senhaHash,
-          usuario.emaiLVerificado,
+          usuario.emailVerificado,
+          usuario.cargo,
         ]
       );
     } catch (erro) {
@@ -26,7 +27,7 @@ module.exports = {
 
   async buscaPorId(id) {
     try {
-      return await dbGet(`SELECT * FROM usuarios WHERE id = ?`, [id]);
+      return await dbGet("SELECT * FROM usuarios WHERE id = ?", [id]);
     } catch (erro) {
       throw new InternalServerError("Não foi possível encontrar o usuário!");
     }
@@ -34,7 +35,7 @@ module.exports = {
 
   async buscaPorEmail(email) {
     try {
-      return await dbGet(`SELECT * FROM usuarios WHERE email = ?`, [email]);
+      return await dbGet("SELECT * FROM usuarios WHERE email = ?", [email]);
     } catch (erro) {
       throw new InternalServerError("Não foi possível encontrar o usuário!");
     }
@@ -42,7 +43,7 @@ module.exports = {
 
   async lista() {
     try {
-      return await dbAll(`SELECT * FROM usuarios`);
+      return await dbAll("SELECT * FROM usuarios");
     } catch (erro) {
       throw new InternalServerError("Erro ao listar usuários!");
     }
@@ -50,20 +51,33 @@ module.exports = {
 
   async modificaEmailVerificado(usuario, emailVerificado) {
     try {
-      await dbRun(`UPDATE usuarios SET emailVerificado = ? WHERE id = ?`, [
+      await dbRun("UPDATE usuarios SET emailVerificado = ? WHERE id = ?", [
         emailVerificado,
         usuario.id,
       ]);
     } catch (erro) {
       throw new InternalServerError(
-        "Erro ao modificar a verificação de email!"
+        "Erro ao modificar a verficação de e-mail!"
+      );
+    }
+  },
+
+  async atualizaSenha(senha, id) {
+    try {
+      await dbRun("UPDATE usuarios SET senhaHash = ? WHERE id = ?", [
+        senha,
+        id,
+      ]);
+    } catch (erro) {
+      throw new InternalServerError(
+        "Erro ao tentar atualziar a senha do usuário!"
       );
     }
   },
 
   async deleta(usuario) {
     try {
-      await dbRun(`DELETE FROM usuarios WHERE id = ?`, [usuario.id]);
+      await dbRun("DELETE FROM usuarios WHERE id = ?", [usuario.id]);
     } catch (erro) {
       throw new InternalServerError("Erro ao deletar o usuário");
     }

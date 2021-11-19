@@ -1,9 +1,12 @@
 const Post = require("./posts-modelo");
-const { InvalidArgumentError, InternalServerError } = require("../erros");
+const { ConversorPost } = require("../conversores");
+const { InvalidArgumentError } = require("../erros");
 
 module.exports = {
   async adiciona(req, res) {
     try {
+      req.body.autor = req.user.id;
+
       const post = new Post(req.body);
 
       await post.adiciona();
@@ -11,22 +14,58 @@ module.exports = {
       res.status(201).json(post);
     } catch (erro) {
       if (erro instanceof InvalidArgumentError) {
-        res.status(422).json({ erro: erro.message });
-      } else if (erro instanceof InternalServerError) {
-        res.status(500).json({ erro: erro.message });
-      } else {
-        res.status(500).json({ erro: erro.message });
+        return res.status(400).json({ erro: erro.message });
       }
+
+      res.status(500).json({ erro: erro.message });
     }
   },
 
-  async lista(_req, res) {
+  async lista(req, res) {
     try {
-      const posts = await Post.lista();
+      let posts = await Post.listarTodos();
+      const conversor = new ConversorPost(
+        "json",
+        req.aceso.todos.permitido
+          ? req.acesso.todos.atributos
+          : req.acesso.apenasSeu.atributos
+      );
 
-      res.send(posts);
+      if (!req.estaAutenticado) {
+        posts = posts.map((post) => {
+          post.conteudo =
+            post.conteudo.substr(0, 10) +
+            "... Você precisa assinar o blog para ler o restante do post";
+
+          return post;
+        });
+      }
+
+      res.json(conversor.converter(posts));
     } catch (erro) {
-      return res.status(500).json({ erro: erro });
+      return res.status(500).json({ erro: erro.message });
+    }
+  },
+
+  async obterDetalhes(req, res) {
+    try {
+      const post = await Post.buscaPorId(req.params.id, req.user.id);
+
+      res.json(post);
+    } catch (erro) {
+      return res.status(500).json({ erro: erro.message });
+    }
+  },
+
+  async remover(req, res) {
+    try {
+      const post = await Post.buscaPorId(req.params.id, req.user.id);
+
+      post.remover();
+
+      res.status(204).end();
+    } catch (erro) {
+      return res.status(500).json({ erro: erro.message });
     }
   },
 };

@@ -4,11 +4,11 @@ const LocalStrategy = require("passport-local").Strategy;
 const BearerStrategy = require("passport-http-bearer").Strategy;
 const Usuario = require("./usuarios-modelo");
 const tokens = require("./tokens");
-const { InvalidArgumentError } = require("../erros");
+const { InvalidArgumentError, NotAuthorizedError } = require("../erros");
 
 function verificaUsuario(usuario) {
   if (!usuario) {
-    throw new InvalidArgumentError("Não existe usuário com esse e-mail!");
+    throw new NotAuthorizedError();
   }
 }
 
@@ -16,7 +16,7 @@ async function verificaSenha(senha, senhaHash) {
   const senhaValida = await bcrypt.compare(senha, senhaHash);
 
   if (!senhaValida) {
-    throw new InvalidArgumentError("E-mail ou senha inválidos!");
+    throw new NotAuthorizedError();
   }
 }
 
@@ -32,6 +32,7 @@ passport.use(
         const usuario = await Usuario.buscaPorEmail(email);
 
         verificaUsuario(usuario);
+
         await verificaSenha(senha, usuario.senhaHash);
 
         done(null, usuario);
@@ -48,7 +49,7 @@ passport.use(
       const id = await tokens.access.verifica(token);
       const usuario = await Usuario.buscaPorId(id);
 
-      done(null, usuario, { token: token });
+      done(null, usuario, { token });
     } catch (erro) {
       done(erro);
     }
